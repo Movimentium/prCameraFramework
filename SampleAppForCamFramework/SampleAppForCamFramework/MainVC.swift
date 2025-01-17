@@ -8,7 +8,7 @@
 import UIKit
 import CameraFramework
 
-class MainVC: UIViewController {
+class MainVC: UIViewController, CameraDelegate {
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -18,6 +18,8 @@ class MainVC: UIViewController {
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         let camVC = CameraVC()
+        camVC.postion = .back
+        camVC.delegate = self
         camVC.modalPresentationStyle = .fullScreen
         camVC.modalTransitionStyle = .coverVertical
         present(camVC, animated: true) {
@@ -25,5 +27,9 @@ class MainVC: UIViewController {
         }
     }
     
+    // MARK: -
+    func onCameraCancelButton(cameraVC: CameraFramework.CameraVC) {
+        cameraVC.dismiss(animated: true)
+    }
 
 }
