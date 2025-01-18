@@ -9,6 +9,7 @@ import UIKit
 
 public protocol CameraDelegate: AnyObject {
     func onCameraCancelButton(cameraVC: CameraVC)
+    func orientationDidChanged(orientation: UIDeviceOrientation)
 }
 
 public class CameraVC: UIViewController, CameraViewInterface {
@@ -41,14 +42,23 @@ public class CameraVC: UIViewController, CameraViewInterface {
         super.viewWillAppear(animated)
         createUI()
         presenter.configure()
+        NotificationCenter.default.addObserver(self,
+                                               selector: #selector(orientationChanged),
+                                               name: UIDevice.orientationDidChangeNotification, 
+                                               object: nil)
     }
     
     public override func viewWillLayoutSubviews() {
         super.viewWillLayoutSubviews()
-        updateUI(withOrientation: UIApplication.shared.statusBarOrientation)
         updateCancelBtnFrame()
     }
     
+    public override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        NotificationCenter.default.removeObserver(self, 
+                                                  name: UIDevice.orientationDidChangeNotification,
+                                                  object: nil)
+    }
     
     // MARK: - Public methods
     public func startSession() {
@@ -66,7 +76,9 @@ public class CameraVC: UIViewController, CameraViewInterface {
         view.addSubview(cancelBtn)
     }
     
-    func updateUI(withOrientation orientation: UIInterfaceOrientation) {
+    @objc func orientationChanged() {
+        let orientation = UIDevice.current.orientation
+        delegate?.orientationDidChanged(orientation: orientation)
         guard let connection = presenter.previewCALayer.connection else { return }
         presenter.previewCALayer.frame = view.bounds
         switch orientation {
@@ -77,6 +89,7 @@ public class CameraVC: UIViewController, CameraViewInterface {
         default:
             fatalError("\(Self.self) \(#function)")
         }
+        updateCancelBtnFrame()
     }
             
     // CancelBtn related methods

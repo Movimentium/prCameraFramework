@@ -13,6 +13,11 @@ class MainVC: UIViewController, CameraDelegate {
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view.
+        NotificationCenter.default.addObserver(self,
+                                               selector: #selector(orientationChanged),
+                                               name: UIDevice.orientationDidChangeNotification,
+                                               object: nil)
+
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -27,9 +32,19 @@ class MainVC: UIViewController, CameraDelegate {
         }
     }
     
+    @objc func orientationChanged() {
+        let orientation = UIDevice.current.orientation
+        print(Self.self, #function, orientation)
+
+    }
+    
     // MARK: - CameraDelegate
     func onCameraCancelButton(cameraVC: CameraFramework.CameraVC) {
         cameraVC.dismiss(animated: true)
+    }
+    
+    func orientationDidChanged(orientation: UIDeviceOrientation) {
+        print(Self.self, #function, orientation)
     }
 
 }
