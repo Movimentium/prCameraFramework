@@ -5,7 +5,7 @@
 //  Created by Miguel Gallego on 18/1/25.
 //
 
-import Foundation
+import UIKit
 import AVFoundation
 
 public enum CameraPosition {
@@ -22,6 +22,7 @@ public enum CameraPosition {
  
 protocol CameraViewInterface: AnyObject {
     var position: CameraPosition  { get set }
+    func captured(image: UIImage)
 }
 
 final class CameraPresenter {
@@ -71,6 +72,11 @@ final class CameraPresenter {
     
     func getAVCaptureDevice(withPosition position: AVCaptureDevice.Position) -> AVCaptureDevice? {
         discoverySession.devices.first { $0.position == position }
+    }
+    
+    func captureImage() {
+        viewInterface?.captured(image: UIImage())
+        // TODO:
     }
 
 }

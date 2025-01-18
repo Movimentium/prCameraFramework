@@ -17,6 +17,7 @@ public class CameraVC: UIViewController, CameraViewInterface {
     let presenter = CameraPresenter()
     public weak var delegate: CameraDelegate?
     let cancelBtn = UIButton()
+    let shutterBtn = UIButton()
 
     public var position: CameraPosition = .back {
         didSet {
@@ -50,7 +51,7 @@ public class CameraVC: UIViewController, CameraViewInterface {
     
     public override func viewWillLayoutSubviews() {
         super.viewWillLayoutSubviews()
-        updateCancelBtnFrame()
+        updateBtnsFrames()
     }
     
     public override func viewWillDisappear(_ animated: Bool) {
@@ -74,6 +75,11 @@ public class CameraVC: UIViewController, CameraViewInterface {
         cancelBtn.setTitle("Cancel", for: .normal)
         cancelBtn.addTarget(self, action: #selector(onCancelBtn), for: .touchUpInside)
         view.addSubview(cancelBtn)
+        
+        let imgShutter = UIImage(named: "imgShutter")
+        shutterBtn.setImage(imgShutter, for: .normal)
+        shutterBtn.addTarget(self, action: #selector(onShutterBtn), for: .touchUpInside)
+        view.addSubview(shutterBtn)
     }
     
     @objc func orientationChanged() {
@@ -89,19 +95,31 @@ public class CameraVC: UIViewController, CameraViewInterface {
         default:
             fatalError("\(Self.self) \(#function)")
         }
-        updateCancelBtnFrame()
+        updateBtnsFrames()
     }
             
-    // CancelBtn related methods
-    func updateCancelBtnFrame() {
+    // Buttons related methods
+    func updateBtnsFrames() {
         let safeBottom = view.safeAreaInsets.bottom
         let safeLeft = view.safeAreaInsets.left
         cancelBtn.frame = CGRect(x: view.frame.minX + safeLeft + 10,
                                  y: view.frame.maxY - safeBottom - 50,
                                  width: 70, height: 30)
+        shutterBtn.frame = CGRect(x: view.frame.midX - 35,
+                                  y: view.frame.maxY - safeBottom - 80,
+                                  width: 70, height: 70)
     }
     
     @objc func onCancelBtn() {
         delegate?.onCameraCancelButton(cameraVC: self)
+    }
+    
+    @objc func onShutterBtn() {
+        presenter.captureImage()
+    }
+    
+    // CameraViewInterface
+    func captured(image: UIImage) {
+        // TODO:
     }
 }
