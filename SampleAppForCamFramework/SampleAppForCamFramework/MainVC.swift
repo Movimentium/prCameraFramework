@@ -18,7 +18,7 @@ class MainVC: UIViewController, CameraDelegate {
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         let camVC = CameraVC()
-        camVC.postion = .back
+        camVC.position = .back
         camVC.delegate = self
         camVC.modalPresentationStyle = .fullScreen
         camVC.modalTransitionStyle = .coverVertical
@@ -27,7 +27,7 @@ class MainVC: UIViewController, CameraDelegate {
         }
     }
     
-    // MARK: -
+    // MARK: - CameraDelegate
     func onCameraCancelButton(cameraVC: CameraFramework.CameraVC) {
         cameraVC.dismiss(animated: true)
     }

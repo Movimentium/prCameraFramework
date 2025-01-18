@@ -6,42 +6,22 @@
 //
 
 import UIKit
-import AVFoundation
 
 public protocol CameraDelegate: AnyObject {
     func onCameraCancelButton(cameraVC: CameraVC)
 }
 
-public enum CameraPosition {
-    case front
-    case back
-    
-    var avCaptureDevicePosition: AVCaptureDevice.Position {
-        switch self {
-        case .front:  .front
-        case .back:   .back
-        }
-    }
-}
-
-public class CameraVC: UIViewController {
+public class CameraVC: UIViewController, CameraViewInterface {
+        
+    let presenter = CameraPresenter()
     public weak var delegate: CameraDelegate?
     let cancelBtn = UIButton()
-    let session = AVCaptureSession()
-    let discoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.builtInWideAngleCamera],
-                                                            mediaType: .video,
-                                                            position: .unspecified)
-    var videoInput: AVCaptureDeviceInput?
-    let videoOutput = AVCaptureVideoDataOutput()
-    lazy var previewCALayer: AVCaptureVideoPreviewLayer = {
-        return AVCaptureVideoPreviewLayer(session: session)
-    }()
 
-    public var postion = CameraPosition.back {
+    public var position: CameraPosition = .back {
         didSet {
-            if session.isRunning {
-                session.stopRunning()
-                configure()
+            if presenter.session.isRunning {
+                presenter.session.stopRunning()
+                presenter.configure()
                 startSession()
             }
         }
@@ -49,6 +29,7 @@ public class CameraVC: UIViewController {
 
     public init() {
         super.init(nibName: nil, bundle: nil)
+        presenter.viewInterface = self
     }
     
     required init?(coder: NSCoder) {  // Never used: no .xib, no .storyboard
@@ -59,7 +40,7 @@ public class CameraVC: UIViewController {
     public override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         createUI()
-        configure()
+        presenter.configure()
     }
     
     public override func viewWillLayoutSubviews() {
@@ -71,15 +52,13 @@ public class CameraVC: UIViewController {
     
     // MARK: - Public methods
     public func startSession() {
-        DispatchQueue.global(qos: .userInteractive).async { [weak self] in
-            self?.session.startRunning()
-        }
+        presenter.startSession()
     }
     
-    // MARK: - Private methods
+    // MARK: - Private view logic methods
     func createUI() {
+        let previewCALayer = presenter.previewCALayer
         previewCALayer.frame = view.bounds
-        previewCALayer.videoGravity = AVLayerVideoGravity.resizeAspectFill
         view.layer.addSublayer(previewCALayer)
         
         cancelBtn.setTitle("Cancel", for: .normal)
@@ -88,8 +67,8 @@ public class CameraVC: UIViewController {
     }
     
     func updateUI(withOrientation orientation: UIInterfaceOrientation) {
-        guard let connection = previewCALayer.connection else { return }
-        previewCALayer.frame = view.bounds
+        guard let connection = presenter.previewCALayer.connection else { return }
+        presenter.previewCALayer.frame = view.bounds
         switch orientation {
         case .portrait:            connection.videoOrientation = .portrait
         case .portraitUpsideDown:  connection.videoOrientation = .portraitUpsideDown
@@ -99,38 +78,14 @@ public class CameraVC: UIViewController {
             fatalError("\(Self.self) \(#function)")
         }
     }
-    
-    func configure() {
-        if let currentInput = videoInput {
-            session.removeInput(currentInput)
-            session.removeOutput(videoOutput)
-        }
-        do {
-            guard let device = getAVCaptureDevice(withPosition: postion.avCaptureDevicePosition) else {
-                print(Self.self, #function, "Error")
-                return
-            }
-            let input = try AVCaptureDeviceInput(device: device)
-            if session.canAddInput(input) && session.canAddOutput(videoOutput) {
-                videoInput = input
-                session.addInput(input)
-                session.addOutput(videoOutput)
-                session.commitConfiguration()
-            } else {
-                print(Self.self, #function, "session Error .canAddInput(input) .canAddOutput(videoOutput)")
-            }
-        } catch {
-            print(Self.self, #function, error.localizedDescription)
-        }
-    }
-    
-    func getAVCaptureDevice(withPosition position: AVCaptureDevice.Position) -> AVCaptureDevice? {
-        discoverySession.devices.first { $0.position == position }
-    }
-        
+            
     // CancelBtn related methods
     func updateCancelBtnFrame() {
-        cancelBtn.frame = CGRect(x: view.frame.minX + 10, y: view.frame.maxY - 50, width: 70, height: 30)
+        let safeBottom = view.safeAreaInsets.bottom
+        let safeLeft = view.safeAreaInsets.left
+        cancelBtn.frame = CGRect(x: view.frame.minX + safeLeft + 10,
+                                 y: view.frame.maxY - safeBottom - 50,
+                                 width: 70, height: 30)
     }
     
     @objc func onCancelBtn() {
