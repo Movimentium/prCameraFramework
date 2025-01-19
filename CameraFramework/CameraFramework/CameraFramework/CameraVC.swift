@@ -76,7 +76,9 @@ public class CameraVC: UIViewController, CameraViewInterface {
         cancelBtn.addTarget(self, action: #selector(onCancelBtn), for: .touchUpInside)
         view.addSubview(cancelBtn)
         
-        let imgShutter = UIImage(named: "imgShutter")
+        let imgShutter = UIImage(named: "imgShutter",
+                                 in: Bundle(for: Self.self),
+                                 compatibleWith: nil )
         shutterBtn.setImage(imgShutter, for: .normal)
         shutterBtn.addTarget(self, action: #selector(onShutterBtn), for: .touchUpInside)
         view.addSubview(shutterBtn)

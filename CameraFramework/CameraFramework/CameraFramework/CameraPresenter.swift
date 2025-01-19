@@ -25,7 +25,7 @@ protocol CameraViewInterface: AnyObject {
     func captured(image: UIImage)
 }
 
-final class CameraPresenter {
+final class CameraPresenter: NSObject, AVCapturePhotoCaptureDelegate {
     weak var viewInterface: CameraViewInterface?
     let session = AVCaptureSession()
     let discoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.builtInWideAngleCamera],
@@ -33,6 +33,7 @@ final class CameraPresenter {
                                                             position: .unspecified)
     var videoInput: AVCaptureDeviceInput?
     let videoOutput = AVCaptureVideoDataOutput()
+    let photoOutput = AVCapturePhotoOutput()
     lazy var previewCALayer: AVCaptureVideoPreviewLayer = {
         let previewCALayer = AVCaptureVideoPreviewLayer(session: session)
         previewCALayer.videoGravity = .resizeAspectFill
@@ -44,39 +45,58 @@ final class CameraPresenter {
             self?.session.startRunning()
         }
     }
+    
     func configure() {
-        if let currentInput = videoInput {
-            session.removeInput(currentInput)
-            session.removeOutput(videoOutput)
+        recycleDeviceIO()
+        guard let input = getNewInputDevice(),
+              session.canAddInput(input), session.canAddOutput(videoOutput),
+              session.canAddOutput(photoOutput)
+        else {
+            print(Self.self, #function, "Error");  return
         }
-        do {
-            guard let position = viewInterface?.position else {
-                print(Self.self, #function, "Error");  return
-            }
-            guard let device = getAVCaptureDevice(withPosition: position.avCaptureDevicePosition) else {
-                print(Self.self, #function, "Error");  return
-            }
-            let input = try AVCaptureDeviceInput(device: device)
-            if session.canAddInput(input) && session.canAddOutput(videoOutput) {
-                videoInput = input
-                session.addInput(input)
-                session.addOutput(videoOutput)
-                session.commitConfiguration()
-            } else {
-                print(Self.self, #function, "session Error .canAddInput(input) .canAddOutput(videoOutput)")
-            }
-        } catch {
-            print(Self.self, #function, error.localizedDescription)
-        }
+        videoInput = input
+        session.addInput(input)
+        session.addOutput(videoOutput)
+        session.addOutput(photoOutput)
+        session.commitConfiguration()
+    }
+    
+    func recycleDeviceIO() {
+        session.inputs.forEach { self.session.removeInput($0) }
+        session.outputs.forEach { self.session.removeOutput($0) }
     }
     
     func getAVCaptureDevice(withPosition position: AVCaptureDevice.Position) -> AVCaptureDevice? {
         discoverySession.devices.first { $0.position == position }
     }
     
+    func getNewInputDevice() -> AVCaptureDeviceInput? {
+        do {
+            guard let position = viewInterface?.position else {
+                print(Self.self, #function, "Error");  return nil
+            }
+            guard let device = getAVCaptureDevice(withPosition: position.avCaptureDevicePosition) else {
+                print(Self.self, #function, "Error");  return nil
+            }
+            let input = try AVCaptureDeviceInput(device: device)
+            return input
+        } catch {
+            print(Self.self, #function, error.localizedDescription)
+            return nil
+        }
+    }
+    
     func captureImage() {
-        viewInterface?.captured(image: UIImage())
-        // TODO:
+        let settings = AVCapturePhotoSettings()
+        photoOutput.capturePhoto(with: settings, delegate: self)
     }
 
+    // MARK: - AVCapturePhotoCaptureDelegate
+    func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) 
+    {
+        guard let cgImage = photo.cgImageRepresentation() else {
+            return
+        }
+        viewInterface?.captured(image: UIImage(cgImage: cgImage))
+    }
 }
